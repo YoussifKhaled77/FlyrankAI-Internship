@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Content Refresh & Opportunity Scoring: An ML-Driven Ranking Engine" />
+  <title>Content Refresh & Opportunity Scoring</title>
+
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --text: #172033;
+      --muted: #667085;
+      --line: #e4e7ec;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --success: #15803d;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.7;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .page {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #172554 0%, #1e40af 100%);
+      color: white;
+      padding: 56px;
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 28px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #dbeafe;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      margin: 0 0 16px;
+      max-width: 900px;
+      font-size: clamp(2.1rem, 5vw, 4rem);
+      line-height: 1.1;
+      letter-spacing: -0.04em;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 760px;
+      color: #dbeafe;
+      font-size: 1.05rem;
+    }
+
+    .author {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 24px;
+      margin-top: 28px;
+      color: #e0e7ff;
+      font-size: 0.95rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 240px;
+      gap: 28px;
+      align-items: start;
+    }
+
+    .content {
+      min-width: 0;
+    }
+
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 34px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
+    }
+
+    .section h2 {
+      margin: 0 0 18px;
+      font-size: 1.55rem;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+    }
+
+    .section h2::before {
+      content: "";
+      display: inline-block;
+      width: 4px;
+      height: 24px;
+      background: var(--accent);
+      border-radius: 4px;
+      margin-right: 12px;
+      vertical-align: -4px;
+    }
+
+    .section h3 {
+      margin-top: 26px;
+    }
+
+    .abstract {
+      background: var(--surface-soft);
+      border-left: 4px solid var(--accent);
+      padding: 22px 24px;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+
+    .abstract strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--accent-dark);
+    }
+
+    ul {
+      padding-left: 22px;
+    }
+
+    li + li {
+      margin-top: 10px;
+    }
+
+    code {
+      background: #eef2f7;
+      color: #344054;
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-size: 0.9em;
+    }
+
+    .formula {
+      display: block;
+      background: #111827;
+      color: #f9fafb;
+      padding: 18px 20px;
+      border-radius: 10px;
+      margin: 18px 0;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      overflow-x: auto;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 18px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 15px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    th {
+      background: var(--surface-soft);
+      font-size: 0.9rem;
+      color: #475467;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .highlight {
+      font-weight: 800;
+      color: var(--success);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin: 22px 0;
+    }
+
+    .metric {
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .metric-value {
+      display: block;
+      margin-top: 4px;
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .playbook {
+      display: grid;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .playbook-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: center;
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px 20px;
+    }
+
+    .reason {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.88rem;
+      color: #344054;
+      word-break: break-word;
+    }
+
+    .action {
+      font-weight: 800;
+      color: var(--accent-dark);
+      white-space: nowrap;
+    }
+
+    .toc {
+      position: sticky;
+      top: 24px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
+    }
+
+    .toc-title {
+      margin: 0 0 12px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .toc a {
+      display: block;
+      padding: 7px 0;
+      color: #475467;
+      font-size: 0.9rem;
+    }
+
+    .toc a:hover {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      padding-top: 18px;
+    }
+
+    @media (max-width: 850px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .toc {
+        position: static;
+        order: -1;
+      }
+
+      .hero {
+        padding: 38px 28px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .page {
+        padding: 24px 14px 50px;
+      }
+
+      .section {
+        padding: 24px 20px;
+      }
+
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .playbook-item {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .action {
+        white-space: normal;
+      }
+    }
+
+    @media print {
+      body {
+        background: white;
+      }
+
+      .page {
+        max-width: none;
+        padding: 0;
+      }
+
+      .hero {
+        color: black;
+        background: white;
+        border: 1px solid #ddd;
+        box-shadow: none;
+      }
+
+      .hero p,
+      .author {
+        color: #444;
+      }
+
+      .toc {
+        display: none;
+      }
+
+      .section {
+        box-shadow: none;
+        break-inside: avoid;
+      }
+
+      a {
+        color: black;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+
+    <header class="hero">
+      <span class="eyebrow">Machine Learning Internship Capstone</span>
+      <h1>Content Refresh &amp; Opportunity Scoring</h1>
+      <p>An ML-Driven Ranking Engine for Prioritizing Content Refresh Opportunities</p>
+
+      <div class="author">
+        <span><strong>Author:</strong> Youssif Khaled</span>
+        <span><strong>Track:</strong> Machine Learning Internship Capstone</span>
+      </div>
+    </header>
+
+    <div class="layout">
+
+      <article class="content">
+
+        <section class="section" id="abstract">
+          <h2>1. Title &amp; Abstract</h2>
+
+          <div class="abstract">
+            <strong>Abstract</strong>
+            Identifying decaying content across large client inventories poses a major operational
+            bottleneck for SEO teams facing limited weekly review capacity. This paper addresses
+            the challenge of prioritizing content pages at risk of organic traffic decay using
+            anonymized multi-channel search performance signals. We frame content refresh
+            identification as a machine learning ranking task and evaluate a GroupKFold-validated
+            Random Forest model against a baseline heuristic rule. The trained machine learning
+            model achieves a <strong>Precision@50 of ~0.74</strong>, delivering a 3× improvement
+            over the heuristic rule baseline (~0.24). The output provides a prioritized review
+            queue with actionable reason codes and refresh playbooks to maximize reviewer efficiency.
+          </div>
+        </section>
+
+        <section class="section" id="problem">
+          <h2>2. Introduction &amp; Problem Statement</h2>
+
+          <p>
+            Content marketing and SEO teams managing inventories of over 30,000 pages lack the
+            manual capacity to audit every URL continuously. Without prioritization systems,
+            decaying pages quietly lose search visibility before intervention occurs.
+          </p>
+
+          <ul>
+            <li>
+              <strong>Decision Supported:</strong>
+              Allocates reviewer hours efficiently by surfacing a ranked queue of high-demand,
+              declining pages with automated reason codes
+              (e.g., <code>HIGH_DEMAND_DECLINING_POSITION</code>) and recommended actions
+              (<code>REFRESH_CONTENT</code>, <code>EXPAND_CONTENT</code>, <code>MONITOR</code>).
+            </li>
+            <li>
+              <strong>Cost of False Positives:</strong>
+              Reviewers waste limited operational hours inspecting performing or seasonally
+              fluctuating content.
+            </li>
+            <li>
+              <strong>Cost of False Negatives:</strong>
+              High-value pages quietly lose rankings and revenue without notice.
+            </li>
+          </ul>
+        </section>
+
+        <section class="section" id="data">
+          <h2>3. Data &amp; Scope</h2>
+
+          <p>
+            The study uses the FlyRank anonymized warehouse dataset
+            (<code>content_refresh_anonymized.csv</code>) covering 30,000 rows across
+            32 pseudonymous clients.
+          </p>
+
+          <ul>
+            <li>
+              <strong>Unit of Analysis:</strong>
+              One row = One unique content item (<code>content_id</code>) for a client
+              (<code>client_id</code>) over a 90-day snapshot window.
+            </li>
+            <li>
+              <strong>Observation Window (T - 90d to T):</strong>
+              Historical features including <code>impressions_90d</code>,
+              <code>clicks_90d</code>, <code>avg_position</code>,
+              <code>pageviews_90d</code>, and <code>engaged_sessions_90d</code>.
+            </li>
+            <li>
+              <strong>Outcome Window (T to T + 30d):</strong>
+              Target variable <code>target</code> derived from
+              <code>trend_direction == 'down'</code>.
+            </li>
+            <li>
+              <strong>Public-Safe Isolation:</strong>
+              Raw URLs, domains, customer queries, and exact internal metadata are strictly excluded.
+            </li>
+          </ul>
+        </section>
+
+        <section class="section" id="methodology">
+          <h2>4. Methodology</h2>
+
+          <p>
+            To prevent data leakage, we enforce strict group boundaries and split data based on
+            client entities:
+          </p>
+
+          <ul>
+            <li>
+              <strong>Validation Strategy:</strong>
+              5-fold <code>GroupKFold</code> split grouped by <code>client_id</code> to ensure
+              client content never leaks between training and testing sets.
+            </li>
+            <li>
+              <strong>Rule Baseline:</strong>
+              A heuristic formula combining logarithmic impression volume and average position inverse:
+            </li>
+          </ul>
+
+          <span class="formula">log10(impressions_90d + 1) × (1 + 1 / avg_position)</span>
+
+          <ul>
+            <li>
+              <strong>ML Model:</strong>
+              A Random Forest Classifier trained exclusively on non-leaked 90-day observation features.
+            </li>
+            <li>
+              <strong>Leakage Safeguard:</strong>
+              Direct outcome columns (<code>trend_direction</code> and <code>trend_pct</code>)
+              are strictly isolated as target definitions and excluded from input features (X).
+            </li>
+          </ul>
+        </section>
+
+        <section class="section" id="results">
+          <h2>5. Results</h2>
+
+          <div class="metric-grid">
+            <div class="metric">
+              <span class="metric-label">Heuristic Baseline</span>
+              <span class="metric-value">0.24</span>
+              <span>Precision@50</span>
+            </div>
+
+            <div class="metric">
+              <span class="metric-label">Random Forest</span>
+              <span class="metric-value highlight">0.74</span>
+              <span>Precision@50</span>
+            </div>
+          </div>
+
+          <p>
+            Model performance was evaluated on the held-out test split using
+            <strong>Precision@50</strong>, measuring the accuracy of the top 50 surfaced
+            review recommendations.
+          </p>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Approach</th>
+                  <th>Precision@50</th>
+                  <th>Performance Lift</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Heuristic Rule Baseline</td>
+                  <td>0.24</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td><strong>Random Forest Model</strong></td>
+                  <td class="highlight"><strong>0.74</strong></td>
+                  <td class="highlight"><strong>+208.3% (3×)</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="section" id="limitations">
+          <h2>6. Limitations &amp; Honest Framing</h2>
+
+          <ul>
+            <li>
+              <strong>Observational Signal:</strong>
+              The model identifies historical association and directional risk, not causal proof
+              that updating a page will guarantee ranking recovery.
+            </li>
+            <li>
+              <strong>No Search Engine Claims:</strong>
+              Results reflect empirical correlations within the dataset and do not represent
+              internal Google ranking factors.
+            </li>
+            <li>
+              <strong>External Unobservables:</strong>
+              The model cannot account for unmeasured real-time core algorithm updates or
+              competitor off-page backlink changes outside the 90-day window.
+            </li>
+          </ul>
+        </section>
+
+        <section class="section" id="recommendations">
+          <h2>7. Ranked Recommendations (Action Playbook)</h2>
+
+          <p>
+            The model outputs continuous risk scores paired with standardized reason codes
+            and operational actions:
+          </p>
+
+          <div class="playbook">
+            <div class="playbook-item">
+              <div>
+                <div class="reason">HIGH_DEMAND_DECLINING_POSITION</div>
+                <div>Priority 1: Immediate structural update.</div>
+              </div>
+              <div class="action">REFRESH_CONTENT</div>
+            </div>
+
+            <div class="playbook-item">
+              <div>
+                <div class="reason">HIGH_DEMAND_LOW_CTR</div>
+                <div>Priority 2: Expand subtopics and improve SERP snippets.</div>
+              </div>
+              <div class="action">EXPAND_CONTENT</div>
+            </div>
+
+            <div class="playbook-item">
+              <div>
+                <div class="reason">LOW_DEMAND</div>
+                <div>Maintain existing state and re-evaluate next cycle.</div>
+              </div>
+              <div class="action">MONITOR</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="reproducibility">
+          <h2>8. Reproducibility</h2>
+
+          <p>
+            All code, feature definitions, and executed notebooks are available in the open repository:
+          </p>
+
+          <p>
+            <a
+              href="https://github.com/YoussifKhaled77/FlyrankAI-Internship?utm_source=gemini"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              GitHub Repository: YoussifKhaled77/FlyrankAI-Internship
+            </a>
+          </p>
+        </section>
+
+        <section class="section" id="acknowledgments">
+          <h2>9. Acknowledgments &amp; Data Credit</h2>
+
+          <p>
+            Built on the
+            <a
+              href="https://flyrank.ai/?utm_source=gemini"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              FlyRank.ai
+            </a>
+            ML Internship dataset.
+          </p>
+        </section>
+
+      </article>
+
+      <aside class="toc" aria-label="Table of contents">
+        <div class="toc-title">Contents</div>
+        <a href="#abstract">1. Abstract</a>
+        <a href="#problem">2. Problem Statement</a>
+        <a href="#data">3. Data &amp; Scope</a>
+        <a href="#methodology">4. Methodology</a>
+        <a href="#results">5. Results</a>
+        <a href="#limitations">6. Limitations</a>
+        <a href="#recommendations">7. Recommendations</a>
+        <a href="#reproducibility">8. Reproducibility</a>
+        <a href="#acknowledgments">9. Acknowledgments</a>
+      </aside>
+
+    </div>
+
+    <footer>
+      Content Refresh &amp; Opportunity Scoring · Machine Learning Internship Capstone
+    </footer>
+
+  </main>
+</body>
+</html>
